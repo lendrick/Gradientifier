@@ -21,6 +21,7 @@ body {
 
 .container {
   display: inline-block;
+  font-size: small;
 }
 
 .instructions {
@@ -37,8 +38,8 @@ body {
 }
 
 .slider {
-  width: 250px;
-  margin-left: 30px;
+  width: 200px;
+  margin-left: 20px;
   margin-bottom: 20px;
 }
   
@@ -68,7 +69,6 @@ var rainbow_hex = [
 ];
 
 var rainbow_hex_tmp = get('rainbow');
-console.log(rainbow_hex_tmp, false);
 if(rainbow_hex_tmp) {
   rainbow_hex = rainbow_hex_tmp.split(',');
   console.log(rainbow_hex);
@@ -110,6 +110,7 @@ var palette_hex = [
 ];
 
 var rainbow = [];
+var rainbowAdjustments = [];
 var palette = [];
 var COLORS = 5;
 var excludeMatches;
@@ -146,6 +147,12 @@ $(function() {
       $(this).addClass('selected');
       selectedColor = $(this).index();
       $.farbtastic('#selectedPicker').setColor(hexColor(rainbow[selectedColor]));
+   
+      $('#selectedReflectivitySlider').slider("value", rainbowAdjustments[selectedColor].r);
+      $('#selectedIlluminationSlider').slider("value", rainbowAdjustments[selectedColor].illum);
+      $('#selectedHlSlider').slider("value", rainbowAdjustments[selectedColor].hm);
+      $('#selectedContrastSlider').slider("value", rainbowAdjustments[selectedColor].con);
+      $('#selectedBrightnessSlider').slider("value", rainbowAdjustments[selectedColor].bri);
     }
   });
   
@@ -157,15 +164,32 @@ $(function() {
     rainbow.push(getColor(rainbow_hex[i]));
   }
   
+  rainbowAdjustments = JSON.parse(get('adjustments', false));
+  if(!rainbowAdjustments) {
+    rainbowAdjustments = [];
+    for(var i = 0; i < rainbow.length; i++) {
+      rainbowAdjustments.push({ r: 50, illum: 50, hm: 50, con: 50, bri: 50 });
+    }
+  }
+  
   img = new Image();
   img.onload = function() {
     imgBuffer.drawImage(img, 0, 0, 96, 80);
-    $('#reflectivitySlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('r', 0) });
-    $('#illuminationSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('illum', 50) });
-    $('#hlSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('hm', 0) });
-    $('#saturationSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('s', 0) });
-    $('#darkenSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('d', 0) });
-    $('#tintSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('t', 0) });
+    $('#reflectivitySlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('r', 0) });
+    $('#illuminationSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('illum', 50) });
+    $('#brightnessSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('b', 50) });
+    $('#contrastSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('c', 100) });
+    $('#hlSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('hm', 0) });
+  
+    $('#selectedReflectivitySlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
+    $('#selectedIlluminationSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
+    $('#selectedBrightnessSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
+    $('#selectedContrastSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
+    $('#selectedHlSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });  
+    
+    $('#saturationSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('s', 0) });
+    $('#darkenSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('d', 0) });
+    $('#tintSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('t', 0) });
 
     $('.picker').mousemove(function() {
       calculate();
@@ -222,31 +246,24 @@ function calculate() {
   var co = getColor($('#objectColor').val());
   var ch = getColor($('#highlightColor').val());
   var ca = getColor($('#ambientColor').val());
-  
-  /*
-  var r = parseInt($('#reflectivitySlider').slider("value")) / 100;
-  var illum = Math.pow(.05, parseInt($('#illuminationSlider').slider("value")) / 50 - 1);
-  var hm = Math.pow(parseInt($('#hlSlider').slider("value")) / 50 + 1, 2);
-  */
-  var r = parseInt($('#reflectivitySlider').slider("value")) / 100;
-  var illum = Math.pow(.15, parseInt($('#illuminationSlider').slider("value")) / 50 - 1);
-  var hm = parseInt($('#hlSlider').slider("value")) / 25 + 1;
 
   var tint = parseInt($('#tintSlider').slider("value")) / 100;
   var sat = parseInt($('#saturationSlider').slider("value")) / 100;
   var dark = 1 - parseInt($('#darkenSlider').slider("value")) / 100;
   
-  var bookmark = 'http://static.opengameart.org/gradientifier/rainbow.html';
+  var bookmark = '';
   bookmark += "?co=" + escape($('#objectColor').val());
   bookmark += "&ch=" + escape($('#highlightColor').val());
   bookmark += "&ca=" + escape($('#ambientColor').val());
   bookmark += "&r=" + $('#reflectivitySlider').slider("value");
+  bookmark += "&c=" + $('#contrastSlider').slider("value");
   bookmark += "&illum=" + $('#illuminationSlider').slider("value");
   bookmark += "&hm=" + $('#hlSlider').slider("value");
   bookmark += "&s=" + $('#saturationSlider').slider("value");
   bookmark += "&d=" + $('#darkenSlider').slider("value");
   bookmark += "&t=" + $('#tintSlider').slider("value");
   bookmark += "&rainbow=" + escape(rainbow_hex.join(","));
+  bookmark += "&adjustments=" + escape(JSON.stringify(rainbowAdjustments));
   $('#bookmark').html('<a href="' + bookmark + '" target="_blank">Bookmark Result</a>');  
   
  
@@ -256,6 +273,12 @@ function calculate() {
   
   paletteBuffer.fillRect(0, 0, paletteBufferCanvas.width, paletteBufferCanvas.height);
   rainbow[0] = getColor($('#objectColor').val());
+  
+  rainbowAdjustments[selectedColor].r = parseFloat($('#selectedReflectivitySlider').slider("value"));
+  rainbowAdjustments[selectedColor].illum = parseFloat($('#selectedIlluminationSlider').slider("value"));
+  rainbowAdjustments[selectedColor].hm = parseFloat($('#selectedHlSlider').slider("value"));
+  rainbowAdjustments[selectedColor].con = parseFloat($('#selectedContrastSlider').slider("value"));
+  rainbowAdjustments[selectedColor].bri = parseFloat($('#selectedBrightnessSlider').slider("value"));
   
   for(var k = 0; k < rainbow.length; k++) {
     results = [];
@@ -274,15 +297,32 @@ function calculate() {
     rainbowPreview += "<div class='color" + colorClass + "' style='background-color: " + hexColor(co) + "'></div>";
     drawRefSwatch(rainbow[k], k);
     
+    var r = parseFloat($('#reflectivitySlider').slider("value"));
+    var illum = parseFloat($('#illuminationSlider').slider("value"));
+    var hm = parseFloat($('#hlSlider').slider("value"));
+    var con = parseFloat($('#contrastSlider').slider("value"));
+    var bri = parseFloat($('#brightnessSlider').slider("value"));
+    
+    var adj = getAdjustedValues(k, r, illum, hm, con, bri);
+    
+    adj.r /= 100;
+    adj.illum = Math.pow(.15, adj.illum / 50 - 1);
+    adj.hm = adj.hm / 25 + 1;
+    adj.con /= 100;
+    adj.bri = adj.bri / 100 - .5;
+    
     for(i = 0; i < COLORS; i++) {
-      var weight = Math.pow(i / (COLORS - 1), illum);
-      ch = multiply(ch, hm);
+      var weight = Math.pow(i / (COLORS - 1), adj.illum);
+      weight = (weight - .5) * adj.con + .5;
+      weight -= adj.bri;
+      weight = Math.min(1, weight);
+      weight = Math.max(0, weight);
+      ch = multiply(ch, adj.hm);
 
       var light = average(ca, ch, weight);
 
-      //var result = closestMatch(palette, multiply(co, light));
       var result = multiply(co, light);
-      result = average(light, result, r);
+      result = average(light, result, adj.r);
       var closest = closestMatch(palette, result);
       results.push(closest);
     }
@@ -443,6 +483,21 @@ function drawRefSwatch(c, sx) {
   paletteBuffer.fillRect(sx * 16 + 2, 2, 12, 12);
 }
 
+function getAdjustedValues(index, r, illum, hm, con, bri) {
+  var adj = rainbowAdjustments[index];
+  var result = {};
+  result.r = r + parseFloat(adj.r) - 50;
+  result.illum = illum + parseFloat(adj.illum) - 50;
+  result.hm = hm + parseFloat(adj.hm) - 50;
+  result.con = con + parseFloat(adj.con) - 50;
+  result.bri = bri + parseFloat(adj.bri) - 50;
+  for(var i in result) {
+    result[i] = Math.min(result[i], 100);
+    result[i] = Math.max(result[i], 0);
+  }
+  return result;
+}
+
 </script>
 </head>
 
@@ -468,6 +523,7 @@ function drawRefSwatch(c, sx) {
     <div id='selectedPicker'></div>
   </div>
   <br>
+  Adjust all colors:<br>
   <div class='container'>
     Reflectivity:  (--> More reflective)<br>
     <div id="reflectivitySlider" class='slider'></div>
@@ -480,7 +536,38 @@ function drawRefSwatch(c, sx) {
     Highlight Multiplier:  (--> Brighter)<br>
     <div id="hlSlider" class='slider'></div>
   </div>
+  <div class='container'>
+    Brightness:<br>
+    <div id="brightnessSlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Contrast:<br>
+    <div id="contrastSlider" class='slider'></div>
+  </div>
   <br>
+  Adjust selected color:<br>
+  <div class='container'>
+    Reflectivity:  (--> More reflective)<br>
+    <div id="selectedReflectivitySlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Illumination:  (--> Darker)<br>
+    <div id="selectedIlluminationSlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Highlight Multiplier:  (--> Brighter)<br>
+    <div id="selectedHlSlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Brightness:<br>
+    <div id="selectedBrightnessSlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Contrast:<br>
+    <div id="selectedContrastSlider" class='slider'></div>
+  </div>
+  <br>
+  Rainbow controls:<br>
   <div class='container'>
     Tint (Rainbow --> Object color): <br>
     <div id="tintSlider" class='slider'></div>
