@@ -122,20 +122,25 @@ var ctx = canvas.getContext('2d');
 var imgBufferCanvas = document.createElement('canvas');
 var imgBuffer = imgBufferCanvas.getContext('2d');
 var selectedColor = 1;
+var imageDataTimeout;
 
-var rainbowBufferCanvas = document.createElement('canvas');
-rainbowBufferCanvas.width = 100 * rainbow_hex.length;
-rainbowBufferCanvas.height = 80;
-var rainbowBuffer = rainbowBufferCanvas.getContext('2d');
-
-var paletteBufferCanvas = document.createElement('canvas');
-paletteBufferCanvas.width = 16 * rainbow_hex.length;
-paletteBufferCanvas.height = 96;
-var paletteBuffer = paletteBufferCanvas.getContext('2d');
+var rainbowBufferCanvas;
+var rainbowBuffer;
+var paletteBufferCanvas;
+var paletteBuffer;
 
 $(function() {
   //var canvas = $('#canvas');
   //ctx = canvas[0].getContext('2d');
+  rainbowBufferCanvas = $('#rainbowBufferCanvas')[0];
+  rainbowBufferCanvas.width = 100 * rainbow_hex.length;
+  rainbowBufferCanvas.height = 80;
+  rainbowBuffer = rainbowBufferCanvas.getContext('2d');
+
+  paletteBufferCanvas = $('#paletteBufferCanvas')[0];
+  paletteBufferCanvas.width = 16 * rainbow_hex.length;
+  paletteBufferCanvas.height = 96;
+  paletteBuffer = paletteBufferCanvas.getContext('2d');
   
   $('#instructions').click(function() {
     $('.instructions').slideToggle();
@@ -240,6 +245,11 @@ $(function() {
 });
 
 function calculate() {
+  $('#rainbowimg').hide();
+  $('#rampImg').hide();
+  $('#rainbowCanvas').show();
+  $('#rampCanvas').show();
+
   var i;
   var results = [];
   var hexResults = [];
@@ -376,11 +386,22 @@ function calculate() {
   
   $('#rainbowPreview').html(rainbowPreview);
   
+  // Do this so Chrome and IE users can save the palette.
+  if(imageDataTimeout) window.clearTimeout(imageDataTimeout);
+  imageDataTimeout = setTimeout(updateImages, 2000);
+}
+
+function updateImages() {
   output = rainbowBufferCanvas.toDataURL("image/png");
   $('#rainbowimg').html('<img src="' + output + '"/>');
   
   output = paletteBufferCanvas.toDataURL("image/png");
   $('#rampImg').html('<img src="' + output + '"/>');
+  
+  $('#rainbowCanvas').hide();
+  $('#rampCanvas').hide();
+  $('#rainbowimg').show();
+  $('#rampImg').show();
 }
 
 function updateRainbowColor() {
@@ -589,13 +610,15 @@ function getAdjustedValues(index, r, illum, hm, con, bri) {
     <div id='rainbowPreview'></div>
     <button id='addRainbowColor'>Add Color</button> <button id='removeRainbowColor'>Remove Selected Color</button><br><br>
     Swatches:<br>
-    <div id='rampImg'></div>
+    <div id='rampCanvas'><canvas id='paletteBufferCanvas'></canvas></div>
+    <div id='rampImg' style='display: none'></div>
     <div id='bookmark'></div>
   </div>
   
   <div id='preview'>
     Preview:<br>
-    <div id='rainbowimg'></div>
+    <div id='rainbowCanvas'><canvas id='rainbowBufferCanvas'></canvas></div>
+    <div id='rainbowimg' style='display: none'></div>
   </div>
   
   <a href='https://github.com/lendrick/Gradientifier/archive/master.zip'>Download latest version</a> from <a href='https://github.com/lendrick/Gradientifier'>the GitHub repository</a>.

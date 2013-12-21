@@ -157,7 +157,7 @@ function calculate() {
   bookmark += "&illum=" + $('#illuminationSlider').slider("value");
   bookmark += "&hm=" + $('#hlSlider').slider("value");
   $('#bookmark').html('<a href="' + bookmark + '" target="_blank">Bookmark Result</a><br>' +
-    '<a href="rainbow.html' + bookmark + '&s=0&d=0&t=0" target="_blank">Taste the Rainbow!</a> (slow)');
+    '<a href="rainbow.html' + bookmark + '&s=0&d=0&t=0" target="_blank">Taste the Rainbow!</a>');
   
   for(i = 0; i < COLORS; i++) {
     var weight = Math.pow(i / (COLORS - 1), illum);
