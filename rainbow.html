@@ -37,7 +37,7 @@ body {
 }
 
 .slider {
-  width: 300px;
+  width: 250px;
   margin-left: 30px;
   margin-bottom: 20px;
 }
@@ -160,12 +160,12 @@ $(function() {
   img = new Image();
   img.onload = function() {
     imgBuffer.drawImage(img, 0, 0, 96, 80);
-    $('#reflectivitySlider').slider({ max: 100, slide: calculate, value: get('r', 0) });
-    $('#illuminationSlider').slider({ max: 100, slide: calculate, value: get('illum', 50) });
-    $('#hlSlider').slider({ max: 100, slide: calculate, value: get('hm', 0) });
-    $('#saturationSlider').slider({ max: 100, slide: calculate, value: get('s', 0) });
-    $('#darkenSlider').slider({ max: 100, slide: calculate, value: get('d', 0) });
-    $('#tintSlider').slider({ max: 100, slide: calculate, value: get('t', 0) });
+    $('#reflectivitySlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('r', 0) });
+    $('#illuminationSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('illum', 50) });
+    $('#hlSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('hm', 0) });
+    $('#saturationSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('s', 0) });
+    $('#darkenSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('d', 0) });
+    $('#tintSlider').slider({ max: 100, slide: calculate, step: 0.4, value: get('t', 0) });
 
     $('.picker').mousemove(function() {
       calculate();
