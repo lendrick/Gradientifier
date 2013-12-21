@@ -222,6 +222,7 @@ $(function() {
     rainbow.push(getColor('#000000'));
     rainbowBufferCanvas.width = 100 * rainbow_hex.length;
     paletteBufferCanvas.width = 16 * rainbow_hex.length;
+    rainbowAdjustments.push({ r: 100, illum: 100, hm: 100, con: 100, bri: 100 });
     calculate();
   });
   
@@ -229,6 +230,7 @@ $(function() {
     if(rainbow.length > 1) {
       rainbow.splice(selectedColor, 1);
       rainbow_hex.splice(selectedColor, 1);
+      rainbowAdjustments.splice(selectedColor, 1);
       if(selectedColor >= rainbow.length) selectedColor = rainbow.length - 1;
       rainbowBufferCanvas.width = 100 * rainbow_hex.length;
       paletteBufferCanvas.width = 16 * rainbow_hex.length;
