@@ -184,14 +184,14 @@ $(function() {
     $('#reflectivitySlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('r', 0) });
     $('#illuminationSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('illum', 50) });
     $('#brightnessSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('b', 50) });
-    $('#contrastSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('c', 100) });
+    $('#contrastSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.5, value: get('c', 100) });
     $('#hlSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('hm', 0) });
   
     $('#selectedReflectivitySlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
     $('#selectedIlluminationSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
     $('#selectedBrightnessSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
     $('#selectedContrastSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
-    $('#selectedHlSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });  
+    $('#selectedHlSlider').slider({ max: 400, slide: calculate, stop: calculate, step: 0.1, value: 100 });  
     
     $('#saturationSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('s', 0) });
     $('#darkenSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('d', 0) });
@@ -523,7 +523,11 @@ function getAdjustedValues(index, r, illum, hm, con, bri) {
   result.con = con + parseFloat(adj.con) - 100;
   result.bri = bri + parseFloat(adj.bri) - 100;
   for(var i in result) {
-    result[i] = Math.min(result[i], 100);
+    if(i == 'con') {
+      result[i] = Math.min(result[i], 200);
+    } else {
+      result[i] = Math.min(result[i], 100);
+    }
     result[i] = Math.max(result[i], 0);
   }
   return result;
