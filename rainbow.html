@@ -168,7 +168,7 @@ $(function() {
   if(!rainbowAdjustments) {
     rainbowAdjustments = [];
     for(var i = 0; i < rainbow.length; i++) {
-      rainbowAdjustments.push({ r: 50, illum: 50, hm: 50, con: 50, bri: 50 });
+      rainbowAdjustments.push({ r: 100, illum: 100, hm: 100, con: 100, bri: 100 });
     }
   }
   
@@ -181,11 +181,11 @@ $(function() {
     $('#contrastSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('c', 100) });
     $('#hlSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('hm', 0) });
   
-    $('#selectedReflectivitySlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
-    $('#selectedIlluminationSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
-    $('#selectedBrightnessSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
-    $('#selectedContrastSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });
-    $('#selectedHlSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: 50 });  
+    $('#selectedReflectivitySlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
+    $('#selectedIlluminationSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
+    $('#selectedBrightnessSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
+    $('#selectedContrastSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });
+    $('#selectedHlSlider').slider({ max: 200, slide: calculate, stop: calculate, step: 0.1, value: 100 });  
     
     $('#saturationSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('s', 0) });
     $('#darkenSlider').slider({ max: 100, slide: calculate, stop: calculate, step: 0.5, value: get('d', 0) });
@@ -486,11 +486,11 @@ function drawRefSwatch(c, sx) {
 function getAdjustedValues(index, r, illum, hm, con, bri) {
   var adj = rainbowAdjustments[index];
   var result = {};
-  result.r = r + parseFloat(adj.r) - 50;
-  result.illum = illum + parseFloat(adj.illum) - 50;
-  result.hm = hm + parseFloat(adj.hm) - 50;
-  result.con = con + parseFloat(adj.con) - 50;
-  result.bri = bri + parseFloat(adj.bri) - 50;
+  result.r = r + parseFloat(adj.r) - 100;
+  result.illum = illum + parseFloat(adj.illum) - 100;
+  result.hm = hm + parseFloat(adj.hm) - 100;
+  result.con = con + parseFloat(adj.con) - 100;
+  result.bri = bri + parseFloat(adj.bri) - 100;
   for(var i in result) {
     result[i] = Math.min(result[i], 100);
     result[i] = Math.max(result[i], 0);
