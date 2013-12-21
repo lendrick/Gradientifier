@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<style>
+body {
+  background-color: #888;
+  font-family: sans-serif;
+}
+
+.color {
+  height: 64px;
+  width: 64px;
+  display: inline-block;
+  background-color: #ccc;
+}
+
+.container {
+  display: inline-block;
+}
+
+.instructions {
+  font-size: small;
+}
+
+#colors {
+  margin-bottom: 20px;
+}
+
+#colorList {
+  height: 30px;
+  width: 400px;
+}
+
+#reflectivitySlider, #illuminationSlider, #hlSlider {
+  width: 300px;
+  margin-left: 30px;
+  margin-bottom: 20px;
+}
+  
+</style>
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.js"></script>
+<script type="text/javascript" src="farbtastic/farbtastic.js"></script>
+<link rel="stylesheet" href="farbtastic/farbtastic.css" type="text/css" />
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+
+<script>
+var palette_hex = [
+  '#000000',
+  '#222034',
+  '#45283C',
+  '#663931',
+  '#8F563B',
+  '#DF7126',
+  '#D9A066',
+  '#EEC39A',
+  '#FBF236',
+  '#99E550',
+  '#6ABE30',
+  '#37946E',
+  '#4B692F',
+  '#524B24',
+  '#323C39',
+  '#3F3F74',
+  '#306082',
+  '#5B6EE1',
+  '#639BFF',
+  '#5FCDE4',
+  '#CBDBFC',
+  '#FFFFFF',
+  '#9BADB7',
+  '#847E87',
+  '#696A6A',
+  '#595652',
+  '#76428A',
+  '#AC3232',
+  '#D95763',
+  '#D77BBA',
+  '#8F974A',
+  '#8A6F30'
+];
+
+var palette = [];
+var COLORS = 5;
+var excludeMatches;
+var img;
+var canvas = document.createElement('canvas');
+canvas.width = 96;
+canvas.height = 80;
+var ctx = canvas.getContext('2d');
+var imgBufferCanvas = document.createElement('canvas');
+var imgBuffer = imgBufferCanvas.getContext('2d');
+
+$(function() {
+  //var canvas = $('#canvas');
+  //ctx = canvas[0].getContext('2d');
+  
+  $('#instructions').click(function() {
+    $('.instructions').slideToggle();
+  });
+  
+  for(var i = 0; i < palette_hex.length; i++) {
+    palette.push(getColor(palette_hex[i]));
+  }
+  
+  img = new Image();
+  img.onload = function() {
+    imgBuffer.drawImage(img, 0, 0, 96, 80);
+    $('#reflectivitySlider').slider({ max: 100, slide: calculate, value: get('r', 0) });
+    $('#illuminationSlider').slider({ max: 100, slide: calculate, value: get('illum', 50) });
+    $('#hlSlider').slider({ max: 100, slide: calculate, value: get('hm', 0) });
+
+
+    $('.picker').mousemove(function() {
+      calculate();
+    });
+    
+    $('.picker').mouseup(function() {
+      calculate();
+    });
+    
+    calculate();
+  }
+  
+  img.src = 'puzzle.png';
+  
+  $('#objectColor').val(get('co', '#8a8a8a'));
+  $('#highlightColor').val(get('ch', '#ffffd1'));
+  $('#ambientColor').val(get('ca', '#15306f'));
+  
+  $('#objectPicker').farbtastic('#objectColor');
+  $('#highlightPicker').farbtastic('#highlightColor');
+  $('#ambientPicker').farbtastic('#ambientColor');
+
+});
+
+function calculate() {
+  var i;
+  var results = [];
+  var hexResults = [];
+  excludeMatches = {};
+  
+  var co = getColor($('#objectColor').val());
+  var ch = getColor($('#highlightColor').val());
+  var ca = getColor($('#ambientColor').val());
+  var r = parseInt($('#reflectivitySlider').slider("value")) / 100;
+  var illum = Math.pow(.15, parseInt($('#illuminationSlider').slider("value")) / 50 - 1);
+  var hm = parseInt($('#hlSlider').slider("value")) / 25 + 1;
+  
+  var bookmark = '';
+  bookmark += "?co=" + escape($('#objectColor').val());
+  bookmark += "&ch=" + escape($('#highlightColor').val());
+  bookmark += "&ca=" + escape($('#ambientColor').val());
+  bookmark += "&r=" + $('#reflectivitySlider').slider("value");
+  bookmark += "&illum=" + $('#illuminationSlider').slider("value");
+  bookmark += "&hm=" + $('#hlSlider').slider("value");
+  $('#bookmark').html('<a href="http://static.opengameart.org/gradientifier' + bookmark + '" target="_blank">Bookmark Result</a><br>' +
+    '<a href="http://static.opengameart.org/gradientifier/rainbow.html' + bookmark + '&s=0&d=0&t=0" target="_blank">Taste the Rainbow!</a> (slow)');
+  
+  for(i = 0; i < COLORS; i++) {
+    var weight = Math.pow(i / (COLORS - 1), illum);
+    ch = multiply(ch, hm);
+
+    var light = average(ca, ch, weight);
+
+    //var result = closestMatch(palette, multiply(co, light));
+    var result = multiply(co, light);
+    result = average(light, result, r);
+    var closest = closestMatch(palette, result);
+    results.push(closest);
+  }
+  
+  // Sort by luminance
+
+  for(i = 0; i < COLORS; i++) {
+    for(var j = 0; j < COLORS - 1; j++) {
+      if(luminance(results[j]) < luminance(results[j+1])) {
+        var x = results[j];
+        results[j] = results[j+1];
+        results[j+1] = x;
+      }
+    }
+  }
+
+  
+  for(i = 0; i < COLORS; i++) {
+    var hex = hexColor(results[i]);
+    hexResults.push(hex);
+
+    $('#color' + i).css('background-color', hex);
+  }
+  
+  $('#colorList').text(hexResults.join(' '));
+  var imgData = imgBuffer.getImageData(0, 0, 96, 80);
+  //console.log(results);
+  //console.log(imgData);
+  
+  for(var i = 0; i < 96 * 80; i++) {
+    var c = null;
+    var rv = imgData.data[i*4];
+    
+    if(rv == 222) {
+      c = 0;
+    } else if(rv == 133) {
+      c = 1;
+    } else if(rv == 117) {
+      c = 2;
+    } else if(rv == 78) {
+      c = 3;
+    } else if(rv == 20) {
+      c = 4;
+    }
+    
+    if(c !== null) {
+      //console.log(i + " " + r + " " + c);
+      //console.log(results[c]);
+      imgData.data[i*4] = Math.round(results[c].r * 255);
+      imgData.data[i*4+1] = Math.round(results[c].g * 255);
+      imgData.data[i*4+2] = Math.round(results[c].b * 255);
+    }
+  }
+  
+  ctx.putImageData(imgData, 0, 0);
+  
+  var output = canvas.toDataURL("image/png");
+  $('#previewimg').html('<img src="' + output + '"/>');
+}
+
+function getColor(hex) {
+  var color = {};
+  hex = hex.substr(1);
+  
+  color.r = parseInt("0x" + hex.substr(0, 2)) / 255;
+  color.g = parseInt("0x" + hex.substr(2, 2)) / 255;
+  color.b = parseInt("0x" + hex.substr(4, 2)) / 255;
+  
+  return color;
+}
+
+function closestMatch(pal, c) {
+  var distance = null;
+  var match = 0;
+  var i;
+  
+  for(i = 0; i < pal.length; i++) {
+    var p = pal[i];
+    var d = Math.sqrt(Math.pow(c.r - p.r, 2) + Math.pow(c.g - p.g, 2) + Math.pow(c.b - p.b, 2));
+    if((distance === null || d < distance) && excludeMatches[i] === undefined) {
+      distance = d;
+      match = i;
+    }    
+  }
+  
+  excludeMatches[match] = true;
+  return pal[match];
+}
+
+function luminance(c) {
+  return 0.299*c.r + 0.587*c.g + 0.114*c.b;
+}
+
+function multiply(color1, color2) {
+  var result = { r: color1.r, g: color1.g, b: color1.b };
+  
+  if(typeof color2 === "number") {
+    result.r *= color2;
+    result.g *= color2;
+    result.b *= color2;
+  } else {
+    result.r *= color2.r;
+    result.g *= color2.g;
+    result.b *= color2.b;
+  }
+  
+  return result;
+}
+
+function average(color1, color2, weight) {
+  return {
+    r: color1.r * weight + color2.r * (1 - weight),
+    g: color1.g * weight + color2.g * (1 - weight),
+    b: color1.b * weight + color2.b * (1 - weight)
+  };
+}
+
+function hexColor(color) {
+  var result = '#';
+  var r = Math.round(color.r * 255).toString(16);
+  var g = Math.round(color.g * 255).toString(16);
+  var b = Math.round(color.b * 255).toString(16);
+  
+  if(r.length == 1) r = "0" + r;
+  if(g.length == 1) g = "0" + g;
+  if(b.length == 1) b = "0" + b;
+  
+  result += r + g + b;
+  return result;
+}
+
+function get(name, def) {
+  name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+  var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+    results = regex.exec(location.search);
+  return results == null ? def : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
+</script>
+</head>
+
+<body>
+  <a href='javascript:void()' id='instructions'>Hide/Show instructions</a><br>
+  <div class='instructions'>
+  <p>This page generates gradients for the Dawnbringer 32 color palette.  A gradient is calculated by
+  assuming that you have an object of a particular color, lit by a point light of a particular color
+  to provide highlights, and ambient light of another color to illuminate shadows.  The reflectivity
+  slider makes the object more or less reflective.  The more reflective an object is, the less its
+  own color will figure into the color of the gradient.</p>
+  
+  <p>The default values for the highlight and ambient color are meant to approximate daylight.</p>
+  
+  <p>As a rule, the highlight should be fairly bright and the ambient light should be fairly dark.<p>
+  
+  <p>Adjust the illumination slider to skew the palette toward light or shadows.  Moving it to the
+  left will result in bright colors, whereas moving it to the right will result in dark colors with
+  dramatic highlights.</p>
+  
+  <p>The highlight multiplier is meant to allow your highlight color to exceed an intensity of #ffffff
+  for the purpose of calculating the gradient, which is good for highlights that need to be very bright
+  but also saturated.  The RGB values will be clamped to 255 in the final output.  The default value
+  (the slider all the way to the left) is a multiplier of 1.</p>
+  </div>
+  
+  <div class='container'>
+    Object color:<br>
+    <input type='text' name='objectColor' id='objectColor' value='#8a8a8a'>
+    <div id='objectPicker' class='picker'></div>
+  </div>
+  <div class='container'>
+    Highlight color:<br>
+    <input type='text' name='highlightColor' id='highlightColor' value='#ffffd1'>
+    <div id='highlightPicker' class='picker'></div>
+  </div>
+  <div class='container'>
+    Ambient color:<br>
+    <input type='text' name='ambientColor' id='ambientColor' value='#15306f'>
+    <div id='ambientPicker' class='picker'></div>
+  </div>
+  <div>
+    Reflectivity:  (--> More reflective)<br>
+    <div id="reflectivitySlider"></div>
+  </div>
+  <div>
+    Illumination:  (--> Darker)<br>
+    <div id="illuminationSlider"></div>
+  </div>
+  <div>
+    Highlight Multiplier:  (--> Brighter)<br>
+    <div id="hlSlider"></div>
+  </div>
+  
+  <div id='colors'>
+    Gradient:<br>
+    <div class='color' id='color0'></div><div class='color' id='color1'></div><div class='color' id='color2'></div><div class='color' id='color3'></div><div class='color' id='color4'></div>
+    <div id='colorList'></div>
+    <div id='bookmark'></div>
+  </div>
+  
+  <div id='preview'>
+    Preview:<br>
+    <div id='previewimg'></div>
+    <!--canvas height='80' width='96' id='canvas'></canvas-->
+  </div>
+</body>
+
+</html>
+

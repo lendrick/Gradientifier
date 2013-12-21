@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<style>
+body {
+  background-color: #888;
+  font-family: sans-serif;
+}
+
+.color {
+  height: 32px;
+  width: 32px;
+  display: inline-block;
+  background-color: #ccc;
+}
+
+.color.selected {
+  transform: scale(1.2, 1.2);
+}
+
+.container {
+  display: inline-block;
+}
+
+.instructions {
+  font-size: small;
+}
+
+#colors {
+  margin-bottom: 20px;
+}
+
+#colorList {
+  height: 30px;
+  width: 400px;
+}
+
+.slider {
+  width: 300px;
+  margin-left: 30px;
+  margin-bottom: 20px;
+}
+  
+</style>
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-latest.js"></script>
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.js"></script>
+<script type="text/javascript" src="farbtastic/farbtastic.js"></script>
+<link rel="stylesheet" href="farbtastic/farbtastic.css" type="text/css" />
+<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+
+<script>
+var rainbow_hex = [
+  '#000000',
+  '#ffffff',
+  '#bbbbbb',
+  '#777777',
+  '#333333',
+  '#ff0000',
+  '#ff9200',
+  '#fffd00',
+  '#03ff00',
+  '#00ffff',
+  '#0003ff',
+  '#7f00ff',
+  '#ff00ff'
+];
+
+var rainbow_hex_tmp = get('rainbow');
+console.log(rainbow_hex_tmp, false);
+if(rainbow_hex_tmp) {
+  rainbow_hex = rainbow_hex_tmp.split(',');
+  console.log(rainbow_hex);
+}
+
+var palette_hex = [
+  '#000000',
+  '#222034',
+  '#45283C',
+  '#663931',
+  '#8F563B',
+  '#DF7126',
+  '#D9A066',
+  '#EEC39A',
+  '#FBF236',
+  '#99E550',
+  '#6ABE30',
+  '#37946E',
+  '#4B692F',
+  '#524B24',
+  '#323C39',
+  '#3F3F74',
+  '#306082',
+  '#5B6EE1',
+  '#639BFF',
+  '#5FCDE4',
+  '#CBDBFC',
+  '#FFFFFF',
+  '#9BADB7',
+  '#847E87',
+  '#696A6A',
+  '#595652',
+  '#76428A',
+  '#AC3232',
+  '#D95763',
+  '#D77BBA',
+  '#8F974A',
+  '#8A6F30'
+];
+
+var rainbow = [];
+var palette = [];
+var COLORS = 5;
+var excludeMatches;
+var img;
+var canvas = document.createElement('canvas');
+canvas.width = 96;
+canvas.height = 80;
+var ctx = canvas.getContext('2d');
+var imgBufferCanvas = document.createElement('canvas');
+var imgBuffer = imgBufferCanvas.getContext('2d');
+var selectedColor = 1;
+
+var rainbowBufferCanvas = document.createElement('canvas');
+rainbowBufferCanvas.width = 100 * rainbow_hex.length;
+rainbowBufferCanvas.height = 80;
+var rainbowBuffer = rainbowBufferCanvas.getContext('2d');
+
+var paletteBufferCanvas = document.createElement('canvas');
+paletteBufferCanvas.width = 16 * rainbow_hex.length;
+paletteBufferCanvas.height = 96;
+var paletteBuffer = paletteBufferCanvas.getContext('2d');
+
+$(function() {
+  //var canvas = $('#canvas');
+  //ctx = canvas[0].getContext('2d');
+  
+  $('#instructions').click(function() {
+    $('.instructions').slideToggle();
+  });
+  
+  $('#rainbowPreview').on('click', '.color', function() {
+    if($(this).index() > 0) {
+      $('.color').removeClass('selected');
+      $(this).addClass('selected');
+      selectedColor = $(this).index();
+      $.farbtastic('#selectedPicker').setColor(hexColor(rainbow[selectedColor]));
+    }
+  });
+  
+  for(var i = 0; i < palette_hex.length; i++) {
+    palette.push(getColor(palette_hex[i]));
+  }
+  
+  for(var i = 0; i < rainbow_hex.length; i++) {
+    rainbow.push(getColor(rainbow_hex[i]));
+  }
+  
+  img = new Image();
+  img.onload = function() {
+    imgBuffer.drawImage(img, 0, 0, 96, 80);
+    $('#reflectivitySlider').slider({ max: 100, slide: calculate, value: get('r', 0) });
+    $('#illuminationSlider').slider({ max: 100, slide: calculate, value: get('illum', 50) });
+    $('#hlSlider').slider({ max: 100, slide: calculate, value: get('hm', 0) });
+    $('#saturationSlider').slider({ max: 100, slide: calculate, value: get('s', 0) });
+    $('#darkenSlider').slider({ max: 100, slide: calculate, value: get('d', 0) });
+    $('#tintSlider').slider({ max: 100, slide: calculate, value: get('t', 0) });
+
+    $('.picker').mousemove(function() {
+      calculate();
+    });
+    
+    $('.picker').mouseup(function() {
+      calculate();
+    });
+    
+    $('#selectedPicker').mousemove(updateRainbowColor);
+    $('#selectedPicker').mouseup(updateRainbowColor);
+    
+    calculate();
+  }
+  
+  img.src = 'puzzle.png';
+  
+  $('#objectColor').val(get('co', '#8a8a8a'));
+  $('#highlightColor').val(get('ch', '#ffffd1'));
+  $('#ambientColor').val(get('ca', '#15306f'));
+  $('#selectedColor').val(hexColor(rainbow[selectedColor]));
+  
+  $('#objectPicker').farbtastic('#objectColor');
+  $('#highlightPicker').farbtastic('#highlightColor');
+  $('#ambientPicker').farbtastic('#ambientColor');
+  $('#selectedPicker').farbtastic('#selectedColor');
+  
+  $('#addRainbowColor').click(function() {
+    rainbow_hex.push('#000000');
+    rainbow.push(getColor('#000000'));
+    rainbowBufferCanvas.width = 100 * rainbow_hex.length;
+    paletteBufferCanvas.width = 16 * rainbow_hex.length;
+    calculate();
+  });
+  
+  $('#removeRainbowColor').click(function() {
+    if(rainbow.length > 1) {
+      rainbow.splice(selectedColor, 1);
+      rainbow_hex.splice(selectedColor, 1);
+      if(selectedColor >= rainbow.length) selectedColor = rainbow.length - 1;
+      rainbowBufferCanvas.width = 100 * rainbow_hex.length;
+      paletteBufferCanvas.width = 16 * rainbow_hex.length;
+      calculate();
+    }
+  });
+});
+
+function calculate() {
+  var i;
+  var results = [];
+  var hexResults = [];
+  excludeMatches = {};
+  
+  var co = getColor($('#objectColor').val());
+  var ch = getColor($('#highlightColor').val());
+  var ca = getColor($('#ambientColor').val());
+  
+  /*
+  var r = parseInt($('#reflectivitySlider').slider("value")) / 100;
+  var illum = Math.pow(.05, parseInt($('#illuminationSlider').slider("value")) / 50 - 1);
+  var hm = Math.pow(parseInt($('#hlSlider').slider("value")) / 50 + 1, 2);
+  */
+  var r = parseInt($('#reflectivitySlider').slider("value")) / 100;
+  var illum = Math.pow(.15, parseInt($('#illuminationSlider').slider("value")) / 50 - 1);
+  var hm = parseInt($('#hlSlider').slider("value")) / 25 + 1;
+
+  var tint = parseInt($('#tintSlider').slider("value")) / 100;
+  var sat = parseInt($('#saturationSlider').slider("value")) / 100;
+  var dark = 1 - parseInt($('#darkenSlider').slider("value")) / 100;
+  
+  var bookmark = 'http://static.opengameart.org/gradientifier/rainbow.html';
+  bookmark += "?co=" + escape($('#objectColor').val());
+  bookmark += "&ch=" + escape($('#highlightColor').val());
+  bookmark += "&ca=" + escape($('#ambientColor').val());
+  bookmark += "&r=" + $('#reflectivitySlider').slider("value");
+  bookmark += "&illum=" + $('#illuminationSlider').slider("value");
+  bookmark += "&hm=" + $('#hlSlider').slider("value");
+  bookmark += "&s=" + $('#saturationSlider').slider("value");
+  bookmark += "&d=" + $('#darkenSlider').slider("value");
+  bookmark += "&t=" + $('#tintSlider').slider("value");
+  bookmark += "&rainbow=" + escape(rainbow_hex.join(","));
+  $('#bookmark').html('<a href="' + bookmark + '" target="_blank">Bookmark Result</a>');  
+  
+ 
+  var rainbowPreview = '';
+  
+  paletteBuffer.fillStyle = '#666666';
+  
+  paletteBuffer.fillRect(0, 0, paletteBufferCanvas.width, paletteBufferCanvas.height);
+  rainbow[0] = getColor($('#objectColor').val());
+  
+  for(var k = 0; k < rainbow.length; k++) {
+    results = [];
+    hexResults = [];
+    excludeMatches = {};
+    ch = getColor($('#highlightColor').val());
+    co = average(rainbow[k], getColor($('#objectColor').val()), 1 - tint);
+    co = desaturate(co, sat);
+    co = darken(co, dark);
+    
+    var colorClass = '';
+    if(k == selectedColor) {
+      colorClass = ' selected';
+    }
+    
+    rainbowPreview += "<div class='color" + colorClass + "' style='background-color: " + hexColor(co) + "'></div>";
+    drawRefSwatch(rainbow[k], k);
+    
+    for(i = 0; i < COLORS; i++) {
+      var weight = Math.pow(i / (COLORS - 1), illum);
+      ch = multiply(ch, hm);
+
+      var light = average(ca, ch, weight);
+
+      //var result = closestMatch(palette, multiply(co, light));
+      var result = multiply(co, light);
+      result = average(light, result, r);
+      var closest = closestMatch(palette, result);
+      results.push(closest);
+    }
+    
+    // Sort by luminance
+
+    for(i = 0; i < COLORS; i++) {
+      for(var j = 0; j < COLORS - 1; j++) {
+        if(luminance(results[j]) < luminance(results[j+1])) {
+          var x = results[j];
+          results[j] = results[j+1];
+          results[j+1] = x;
+        }
+      }
+    }
+    
+    for(i = 0; i < COLORS; i++) {
+      drawSwatch(results[i], k, i);
+    }
+
+    var imgData = imgBuffer.getImageData(0, 0, 96, 80);
+    
+    for(var i = 0; i < 96 * 80; i++) {
+      var c = null;
+      var rv = imgData.data[i*4];
+      
+      if(rv == 222) {
+        c = 0;
+      } else if(rv == 133) {
+        c = 1;
+      } else if(rv == 117) {
+        c = 2;
+      } else if(rv == 78) {
+        c = 3;
+      } else if(rv == 20) {
+        c = 4;
+      }
+      
+      if(c !== null) {
+        imgData.data[i*4] = Math.round(results[c].r * 255);
+        imgData.data[i*4+1] = Math.round(results[c].g * 255);
+        imgData.data[i*4+2] = Math.round(results[c].b * 255);
+      }
+    }
+    
+    rainbowBuffer.putImageData(imgData, k*100, 0);
+
+  }
+  
+  $('#rainbowPreview').html(rainbowPreview);
+  
+  output = rainbowBufferCanvas.toDataURL("image/png");
+  $('#rainbowimg').html('<img src="' + output + '"/>');
+  
+  output = paletteBufferCanvas.toDataURL("image/png");
+  $('#rampImg').html('<img src="' + output + '"/>');
+}
+
+function updateRainbowColor() {
+  rainbow_hex[selectedColor] = $('#selectedColor').val();
+  rainbow[selectedColor] = getColor(rainbow_hex[selectedColor]);
+  calculate();
+}
+
+function getColor(hex) {
+  var color = {};
+  hex = hex.substr(1);
+  
+  color.r = parseInt("0x" + hex.substr(0, 2)) / 255;
+  color.g = parseInt("0x" + hex.substr(2, 2)) / 255;
+  color.b = parseInt("0x" + hex.substr(4, 2)) / 255;
+  
+  return color;
+}
+
+function closestMatch(pal, c) {
+  var distance = null;
+  var match = 0;
+  var i;
+  
+  for(i = 0; i < pal.length; i++) {
+    var p = pal[i];
+    var d = Math.sqrt(Math.pow(c.r - p.r, 2) + Math.pow(c.g - p.g, 2) + Math.pow(c.b - p.b, 2));
+    if((distance === null || d < distance) && excludeMatches[i] === undefined) {
+      distance = d;
+      match = i;
+    }    
+  }
+  
+  excludeMatches[match] = true;
+  return pal[match];
+}
+
+function luminance(c) {
+  return 0.299*c.r + 0.587*c.g + 0.114*c.b;
+}
+
+function multiply(color1, color2) {
+  var result = { r: color1.r, g: color1.g, b: color1.b };
+  
+  if(typeof color2 === "number") {
+    result.r *= color2;
+    result.g *= color2;
+    result.b *= color2;
+  } else {
+    result.r *= color2.r;
+    result.g *= color2.g;
+    result.b *= color2.b;
+  }
+  
+  return result;
+}
+
+function average(color1, color2, weight) {
+  return {
+    r: color1.r * weight + color2.r * (1 - weight),
+    g: color1.g * weight + color2.g * (1 - weight),
+    b: color1.b * weight + color2.b * (1 - weight)
+  };
+}
+
+function hexColor(color) {
+  var result = '#';
+  var r = Math.round(color.r * 255).toString(16);
+  var g = Math.round(color.g * 255).toString(16);
+  var b = Math.round(color.b * 255).toString(16);
+  
+  if(r.length == 1) r = "0" + r;
+  if(g.length == 1) g = "0" + g;
+  if(b.length == 1) b = "0" + b;
+  
+  result += r + g + b;
+  return result;
+}
+
+function get(name, def) {
+  name = name.replace(/[\[]/, "\\\[").replace(/[\]]/, "\\\]");
+  var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+    results = regex.exec(location.search);
+  return results == null ? def : decodeURIComponent(results[1].replace(/\+/g, " "));
+}
+
+function desaturate(c, k) {
+  return average({r:1, g:1, b:1}, c, k);
+}
+
+function darken(c, k) {
+  return multiply(c, {r:k, g:k, b:k});
+}
+
+function drawSwatch(c, sx, sy) {
+  paletteBuffer.fillStyle = hexColor(c);
+  paletteBuffer.fillRect(sx * 16, (sy + 1) * 16, 16, 16);
+}
+
+function drawRefSwatch(c, sx) {
+  paletteBuffer.fillStyle = hexColor(c);
+  paletteBuffer.fillRect(sx * 16 + 2, 2, 12, 12);
+}
+
+</script>
+</head>
+
+<body>  
+  <div class='container'>
+    Tint color:<br>
+    <input type='text' name='objectColor' id='objectColor' value='#8a8a8a'>
+    <div id='objectPicker' class='picker'></div>
+  </div>
+  <div class='container'>
+    Highlight color:<br>
+    <input type='text' name='highlightColor' id='highlightColor' value='#ffffd1'>
+    <div id='highlightPicker' class='picker'></div>
+  </div>
+  <div class='container'>
+    Ambient color:<br>
+    <input type='text' name='ambientColor' id='ambientColor' value='#15306f'>
+    <div id='ambientPicker' class='picker'></div>
+  </div>
+  <div class='container'>
+    Selected rainbow color:<br>
+    <input type='text' name='selectedColor' id='selectedColor' value='#15306f'>
+    <div id='selectedPicker'></div>
+  </div>
+  <br>
+  <div class='container'>
+    Reflectivity:  (--> More reflective)<br>
+    <div id="reflectivitySlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Illumination:  (--> Darker)<br>
+    <div id="illuminationSlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Highlight Multiplier:  (--> Brighter)<br>
+    <div id="hlSlider" class='slider'></div>
+  </div>
+  <br>
+  <div class='container'>
+    Tint (Rainbow --> Object color): <br>
+    <div id="tintSlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Desaturate: <br>
+    <div id="saturationSlider" class='slider'></div>
+  </div>
+  <div class='container'>
+    Darken: <br>
+    <div id="darkenSlider" class='slider'></div>
+  </div>  
+  <br>
+  
+  <div id='colors'>
+    Rainbow (before processing):<br>
+    <div id='rainbowPreview'></div>
+    <button id='addRainbowColor'>Add Color</button> <button id='removeRainbowColor'>Remove Selected Color</button><br><br>
+    Swatches:<br>
+    <div id='rampImg'></div>
+    <div id='bookmark'></div>
+  </div>
+  
+  <div id='preview'>
+    Preview:<br>
+    <div id='rainbowimg'></div>
+  </div>
+</body>
+
+</html>
+
