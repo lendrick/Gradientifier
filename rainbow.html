@@ -162,6 +162,24 @@ $(function() {
     }
   });
   
+  $('#rainbowCanvas, #rainbowimg').click(function(e) {
+    var parentOffset = $(this).parent().offset(); 
+    var relX = e.pageX - parentOffset.left;
+    var index = Math.floor(relX / 100);
+    if(index > 0) {
+      $('#rainbowPreview .color').removeClass('selected');
+      $('#rainbowPreview .color').eq(index).addClass('selected');
+      selectedColor = index;
+      $.farbtastic('#selectedPicker').setColor(hexColor(rainbow[selectedColor]));
+   
+      $('#selectedReflectivitySlider').slider("value", rainbowAdjustments[selectedColor].r);
+      $('#selectedIlluminationSlider').slider("value", rainbowAdjustments[selectedColor].illum);
+      $('#selectedHlSlider').slider("value", rainbowAdjustments[selectedColor].hm);
+      $('#selectedContrastSlider').slider("value", rainbowAdjustments[selectedColor].con);
+      $('#selectedBrightnessSlider').slider("value", rainbowAdjustments[selectedColor].bri);
+    }
+  });
+  
   for(var i = 0; i < palette_hex.length; i++) {
     palette.push(getColor(palette_hex[i]));
   }
